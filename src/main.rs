@@ -68,16 +68,8 @@ impl Comparator {
     }
 
     pub fn get_valid_count(&self) -> usize {
-        self.data
-            .values()
-            .filter(|v| v.len() == self.worker_count)
-            .count()
+        self.data.len()
     }
-
-    pub fn cleanup(&mut self) {
-        self.data.retain(|_, v| v.len() == self.worker_count);
-    }
-}
 
 lazy_static::lazy_static! {
     static ref CONFIG: ConfigToml = toml::from_str(&fs::read_to_string("bencher_config.toml").expect("Failed to read config.toml")).expect("Failed to deserialize bencher_config.toml");
