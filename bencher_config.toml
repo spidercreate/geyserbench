@@ -1,6 +1,6 @@
 [config]
-transactions = 1000
-account = "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"
+transactions = 100
+account = "pubkey"
 commitment = "processed"
 
 [[endpoint]]
@@ -14,9 +14,3 @@ name = "arpc"
 url = "http://0.0.0.0:20202"
 x_token = ""
 kind = "arpc"
-
-[[endpoint]]
-name = "thor"
-url = "http://0.0.0.0:50051"
-x_token = ""
-kind = "thor"
