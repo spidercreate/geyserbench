@@ -3,6 +3,18 @@ pub use {
         arpc_service_client::ArpcServiceClient, SubscribeRequest as ArpcSubscribeRequest,
         SubscribeResponse as ArpcSubscribeResponse,
     },
+    publisher::{
+        event_publisher_client::EventPublisherClient,
+        Empty, StreamResponse, SubscribeWalletRequest,
+        
+    },
+    thor_streamer::types::{
+        MessageWrapper, SlotStatusEvent, TransactionEvent, TransactionEventWrapper, UpdateAccountEvent,
+        message_wrapper::EventMessage,
+    },
+    prost::Message,
+    tonic::transport::Uri,
+    tonic::{Request, Streaming},
     bs58,
     bytes::Bytes,
     futures_util::{sink::SinkExt, stream::StreamExt},
@@ -34,9 +46,25 @@ pub mod arpc {
 
     include!(concat!(env!("OUT_DIR"), "/arpc.rs"));
 
-    pub const FILE_DESCRIPTOR_SET: &[u8] = tonic::include_file_descriptor_set!("arpc_descriptor");
+    pub const FILE_DESCRIPTOR_SET: &[u8] = tonic::include_file_descriptor_set!("proto_descriptors");
+}
+pub mod thor_streamer {
+    #![allow(clippy::clone_on_ref_ptr)]
+    #![allow(clippy::missing_const_for_fn)]
+    
+    pub mod types {
+        include!(concat!(env!("OUT_DIR"), "/thor_streamer.types.rs"));
+    }
 }
 
+pub mod publisher {
+    #![allow(clippy::clone_on_ref_ptr)]
+    #![allow(clippy::missing_const_for_fn)]
+    
+    include!(concat!(env!("OUT_DIR"), "/publisher.rs"));
+    
+    pub const FILE_DESCRIPTOR_SET: &[u8] = tonic::include_file_descriptor_set!("proto_descriptors");
+}
 mod config;
 use {config::*, std::collections::BTreeMap};
 
@@ -535,6 +563,114 @@ async fn process_arpc_endpoint(
     Ok(())
 }
 
+async fn process_thor_endpoint(
+    endpoint: Endpoint,
+    config: Config,
+    shutdown_tx: broadcast::Sender<()>,
+    mut shutdown_rx: broadcast::Receiver<()>,
+    start_time: f64,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let mut transaction_count = 0;
+
+    let log_filename = format!("transaction_log_{}.txt", endpoint.name);
+    let mut log_file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(log_filename)
+        .expect("Failed to open log file");
+
+    log::info!(
+        "[{}] Connecting to endpoint: {}",
+        endpoint.name,
+        endpoint.url
+    );
+    let grpc_url = &endpoint.url;
+    let grpc_token = &endpoint.x_token;
+    // Connect to the gRPC server
+    let uri = grpc_url.parse::<tonic::transport::Uri>()?;
+    let mut client = EventPublisherClient::connect(uri).await?;
+    let mut request = Request::new(Empty {});
+    request
+        .metadata_mut()
+        .insert("authorization", grpc_token.parse()?);
+    
+    // Subscribe to transactions stream
+    let mut stream: Streaming<StreamResponse> = client
+        .subscribe_to_transactions(request)
+        .await?
+        .into_inner();
+    log::info!("[{}] Connected successfully", endpoint.name);
+
+    'ploop: loop {
+        tokio::select! {
+            _ = shutdown_rx.recv() => {
+                log::info!("[{}] Received stop signal...", endpoint.name);
+                break;
+            }
+
+            message = stream.next() => {
+                if let Some(Ok(msg)) = message {
+                    if let Ok(message_wrapper) = MessageWrapper::decode(&*msg.data) {
+                        if let Some(EventMessage::Transaction(transaction_event_wrapper)) =
+                            message_wrapper.event_message
+                        {
+                            if let Some(transaction_event) = transaction_event_wrapper.transaction {
+                                if let Some(transaction) = transaction_event.transaction.as_ref() {
+                                    if let Some(message) = transaction.message.as_ref() {
+                                        let accounts: Vec<String> = message.account_keys
+                                            .iter()
+                                            .map(|key| bs58::encode(key).into_string())
+                                            .collect();
+                                        if accounts.contains(&config.account) {
+                                            let signature = bs58::encode(&transaction_event.signature).into_string();
+                                            let timestamp = get_current_timestamp();
+                                            let log_entry = format!(
+                                                "[{:.3}] [{}] {}\n",
+                                                timestamp,
+                                                endpoint.name,
+                                                signature
+                                            );
+                
+                                            log_file.write_all(log_entry.as_bytes())
+                                                .expect("Failed to write to log file");
+                
+                                                let mut comp = COMPARATOR.lock().unwrap();
+                
+                                                comp.add(
+                                                    endpoint.name.clone(),
+                                                    TransactionData {
+                                                        timestamp,
+                
+                                                        signature: signature.clone(),
+                                                        start_time,
+                                                    },
+                                                );
+                                                if comp.get_valid_count() == config.transactions as usize {
+                                                    log::info!("Endpoint {} shutting down after {} transactions seen and {} by all workers", endpoint.name, transaction_count, config.transactions);
+                                                    shutdown_tx.send(()).unwrap();
+                                                    break 'ploop;
+                                                }
+                
+                
+                                            log::info!("{}", log_entry.trim());
+                                            transaction_count += 1;
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+
+    log::info!("[{}] Stream closed", endpoint.name);
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
@@ -566,6 +702,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             EndpointKind::Arpc => handles.push(task::spawn(async move {
                 if let Err(e) =
                     process_arpc_endpoint(endpoint.clone(), config, stx, shutdown_rx, start_time)
+                        .await
+                {
+                    log::error!("[{}] Error processing endpoint: {:?}", endpoint.name, e);
+                }
+            })),
+            EndpointKind::Thor => handles.push(task::spawn(async move {
+                if let Err(e) =
+                    process_thor_endpoint(endpoint.clone(), config, stx, shutdown_rx, start_time)
                         .await
                 {
                     log::error!("[{}] Error processing endpoint: {:?}", endpoint.name, e);

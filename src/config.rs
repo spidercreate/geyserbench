@@ -26,6 +26,7 @@ pub struct Endpoint {
 pub enum EndpointKind {
     Yellowstone,
     Arpc,
+    Thor,
 }
 
 #[derive(Debug, Clone, Copy, Default, Deserialize, Serialize)]
