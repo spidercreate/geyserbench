@@ -70,6 +70,7 @@ impl Comparator {
     pub fn get_valid_count(&self) -> usize {
         self.data.len()
     }
+}
 
 lazy_static::lazy_static! {
     static ref CONFIG: ConfigToml = toml::from_str(&fs::read_to_string("bencher_config.toml").expect("Failed to read config.toml")).expect("Failed to deserialize bencher_config.toml");
@@ -103,7 +104,7 @@ fn percentile(sorted_data: &[f64], p: f64) -> f64 {
 }
 
 fn analyze_delays() {
-    COMPARATOR.lock().unwrap().cleanup();
+    //COMPARATOR.lock().unwrap().cleanup();
     let all_signatures: HashMap<String, HashMap<String, TransactionData>> =
         COMPARATOR.lock().unwrap().data.clone();
     let mut endpoint_stats: HashMap<String, EndpointStats> = HashMap::new();
