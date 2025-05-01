@@ -104,7 +104,7 @@ fn percentile(sorted_data: &[f64], p: f64) -> f64 {
 }
 
 fn analyze_delays() {
-    COMPARATOR.lock().unwrap().cleanup();
+    //COMPARATOR.lock().unwrap().cleanup();
     let all_signatures: HashMap<String, HashMap<String, TransactionData>> =
         COMPARATOR.lock().unwrap().data.clone();
     let mut endpoint_stats: HashMap<String, EndpointStats> = HashMap::new();
