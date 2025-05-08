@@ -27,7 +27,8 @@ pub struct Endpoint {
 #[serde(rename_all = "lowercase")]
 pub enum EndpointKind {
     Yellowstone,
-    Arpc
+    Arpc,
+    Thor,
 }
 
 #[derive(Debug, Clone, Copy, Default, Deserialize, Serialize)]

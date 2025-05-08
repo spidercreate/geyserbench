@@ -15,16 +15,16 @@ use crate::{
 
 use super::GeyserProvider;
 
-pub mod proto {
+pub mod arpc {
     #![allow(clippy::clone_on_ref_ptr)]
     #![allow(clippy::missing_const_for_fn)]
 
     include!(concat!(env!("OUT_DIR"), "/arpc.rs"));
 
-    pub const FILE_DESCRIPTOR_SET: &[u8] = tonic::include_file_descriptor_set!("arpc_descriptor");
+    pub const FILE_DESCRIPTOR_SET: &[u8] = tonic::include_file_descriptor_set!("proto_descriptors");
 }
 
-use proto::{
+use arpc::{
     arpc_service_client::ArpcServiceClient,
     SubscribeRequest as ArpcSubscribeRequest,
     SubscribeRequestFilterTransactions,
