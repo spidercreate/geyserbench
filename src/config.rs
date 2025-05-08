@@ -1,4 +1,6 @@
-use super::*;
+use serde::{Deserialize, Serialize};
+use std::{fs, path::Path};
+use yellowstone_grpc_proto::geyser::CommitmentLevel;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ConfigToml {
@@ -21,11 +23,11 @@ pub struct Endpoint {
     pub kind: EndpointKind,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum EndpointKind {
     Yellowstone,
-    Arpc,
+    Arpc
 }
 
 #[derive(Debug, Clone, Copy, Default, Deserialize, Serialize)]
@@ -43,6 +45,51 @@ impl From<ArgsCommitment> for CommitmentLevel {
             ArgsCommitment::Processed => CommitmentLevel::Processed,
             ArgsCommitment::Confirmed => CommitmentLevel::Confirmed,
             ArgsCommitment::Finalized => CommitmentLevel::Finalized,
+        }
+    }
+}
+
+impl ConfigToml {
+    pub fn load(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        let content = fs::read_to_string(path)?;
+        let config = toml::from_str(&content)?;
+        Ok(config)
+    }
+
+    pub fn create_default(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        let default_config = ConfigToml {
+            config: Config {
+                transactions: 100,
+                account: "pubkey".to_string(),
+                commitment: ArgsCommitment::Processed,
+            },
+            endpoint: vec![
+                Endpoint {
+                    name: "grpc".to_string(),
+                    url: "http://0.0.0.0:10101".to_string(),
+                    x_token: "".to_string(),
+                    kind: EndpointKind::Yellowstone,
+                },
+                Endpoint {
+                    name: "arpc".to_string(),
+                    url: "http://0.0.0.0:20202".to_string(),
+                    x_token: "".to_string(),
+                    kind: EndpointKind::Arpc,
+                },
+            ],
+        };
+
+        let toml_string = toml::to_string_pretty(&default_config)?;
+        fs::write(path, toml_string)?;
+
+        Ok(default_config)
+    }
+
+    pub fn load_or_create(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        if Path::new(path).exists() {
+            Self::load(path)
+        } else {
+            Self::create_default(path)
         }
     }
 }

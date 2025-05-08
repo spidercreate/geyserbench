@@ -28,9 +28,4 @@ lazy_static = "1.5.0"
 [build-dependencies]
 anyhow = "1.0.62"
 tonic-build = "0.12.3"
-
-[target.'cfg(windows)'.build-dependencies]
-powershell_script = "1.1.0"
-
-[target.'cfg(not(windows))'.build-dependencies]
 protobuf-src = "1.1.0"
