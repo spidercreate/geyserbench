@@ -49,6 +49,12 @@ name = "Thor Streamer"
 url = "http://0.0.0.0:50051"
 x_token = "YOUR_TOKEN_HERE"
 kind = "thor"
+
+[[endpoint]]
+name = "Shreder.xyz"
+url = "http://0.0.0.0:10000"
+x_token = "YOUR_TOKEN_HERE"
+kind = "shreder"
 ```
 
 ### Configuration Options
@@ -60,7 +66,7 @@ kind = "thor"
     - `name`: Name for the endpoint
     - `url`: gRPC endpoint URL
     - `x_token`: Authentication token (if required)
-    - `kind`: Geyser provider type (yellowstone, arpc, thor, etc.)
+    - `kind`: Geyser provider type (yellowstone, arpc, thor, shreder, etc.)
 
 ## Usage
 
