@@ -1,4 +1,5 @@
 pub use {
+
     bs58,
     bytes::Bytes,
     env_logger,
@@ -22,9 +23,11 @@ use utils::{Comparator, get_current_timestamp};
 
 const CONFIG_PATH: &str = "config.toml";
 
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+
 
     let config = config::ConfigToml::load_or_create(CONFIG_PATH)?;
     log::info!("Loaded configuration");
@@ -32,8 +35,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (shutdown_tx, _) = broadcast::channel::<()>(1);
 
     let endpoint_count = config.endpoint.len();
+
     let start_time = get_current_timestamp();
     let comparator = Arc::new(Mutex::new(Comparator::new(config.config.transactions as usize)));
+
 
     let mut handles = Vec::new();
     let endpoint_names: Vec<String> = config.endpoint.iter().map(|e| e.name.clone()).collect();
@@ -53,6 +58,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             start_time,
             shared_comparator,
         ));
+
     }
 
     tokio::spawn(async move {
@@ -70,7 +76,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+
     analysis::analyze_delays(&comparator.lock().unwrap(), endpoint_names);
+
 
     Ok(())
 }

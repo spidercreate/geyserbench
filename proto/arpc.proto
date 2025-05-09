@@ -50,4 +50,6 @@ message CompiledInstruction {
   uint32 program_id_index = 1;
   bytes accounts = 2;
   bytes data = 3;
+
 }
+
