@@ -22,6 +22,7 @@ fn main() -> anyhow::Result<()> {
         mpath("proto/arpc.proto"),
         mpath("proto/events.proto"),
         mpath("proto/publisher.proto"),
+        mpath("proto/shredstream.proto"),
     ];
 
     // Compile all proto files
@@ -95,6 +96,25 @@ fn main() -> anyhow::Result<()> {
                         .server_streaming()
                         .input_type("crate::publisher::SubscribeWalletRequest")
                         .output_type("crate::publisher::StreamResponse")
+                        .codec_path("tonic::codec::ProstCodec")
+                        .build()
+                )
+                .build(),
+        ]
+    );
+    Builder::new().compile(
+        &[
+            Service::builder()
+                .name("ShrederService")
+                .package("shredstream")
+                .method(
+                    Method::builder()
+                        .name("subscribe_transactions")
+                        .route_name("SubscribeTransactions")
+                        .client_streaming()
+                        .server_streaming()
+                        .input_type("crate::shredstream::SubscribeTransactionsRequest")
+                        .output_type("crate::shredstream::SubscribeTransactionsResponse")
                         .codec_path("tonic::codec::ProstCodec")
                         .build()
                 )
