@@ -32,7 +32,8 @@ pub enum EndpointKind {
     Yellowstone,
     Arpc,
     Thor,
-    Shreder
+    Shreder,
+    Jetstream,
 }
 
 #[derive(Debug, Clone, Copy, Default, Deserialize, Serialize)]

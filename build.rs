@@ -1,16 +1,13 @@
-
 use ::{ std::{ env, path::PathBuf }, tonic_build::manual::{ Builder, Method, Service } };
 
 const PROTOC_ENVAR: &str = "PROTOC";
 #[inline]
 pub fn protoc() -> String {
     protobuf_src::protoc().to_str().unwrap().to_string()
-
 }
 
 #[inline]
 pub fn mpath(path: &str) -> String {
-
     path.to_string()
 }
 
@@ -18,7 +15,6 @@ fn main() -> anyhow::Result<()> {
     if env::var(PROTOC_ENVAR).is_err() {
         println!("protoc not found in PATH, attempting to fix");
         env::set_var(PROTOC_ENVAR, protoc());
-
     }
 
     // Define all proto files
@@ -27,6 +23,7 @@ fn main() -> anyhow::Result<()> {
         mpath("proto/events.proto"),
         mpath("proto/publisher.proto"),
         mpath("proto/shredstream.proto"),
+        mpath("proto/jetstream.proto"),
     ];
 
     // Compile all proto files
@@ -125,6 +122,53 @@ fn main() -> anyhow::Result<()> {
                 .build(),
         ]
     );
-
+    Builder::new().compile(
+        &[
+            Service::builder()
+                .name("Jetstream")
+                .package("jetstream")
+                .method(
+                    Method::builder()
+                        .name("subscribe")
+                        .route_name("Subscribe")
+                        .client_streaming()
+                        .server_streaming()
+                        .input_type("crate::jetstream::SubscribeRequest")
+                        .output_type("crate::jetstream::SubscribeUpdate")
+                        .codec_path("tonic::codec::ProstCodec")
+                        .build()
+                )
+                .method(
+                    Method::builder()
+                        .name("subscribe_parsed")
+                        .route_name("SubscribeParsed")
+                        .client_streaming()
+                        .server_streaming()
+                        .input_type("crate::jetstream::SubscribeParsedRequest")
+                        .output_type("crate::jetstream::SubscribeUpdateParsedTransaction")
+                        .codec_path("tonic::codec::ProstCodec")
+                        .build()
+                )
+                .method(
+                    Method::builder()
+                        .name("ping")
+                        .route_name("Ping")
+                        .input_type("crate::jetstream::PingRequest")
+                        .output_type("crate::jetstream::PongResponse")
+                        .codec_path("tonic::codec::ProstCodec")
+                        .build()
+                )
+                .method(
+                    Method::builder()
+                        .name("get_version")
+                        .route_name("GetVersion")
+                        .input_type("crate::jetstream::GetVersionRequest")
+                        .output_type("crate::jetstream::GetVersionResponse")
+                        .codec_path("tonic::codec::ProstCodec")
+                        .build()
+                )
+                .build(),
+        ]
+    );
     Ok(())
 }
