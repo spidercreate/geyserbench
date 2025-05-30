@@ -81,12 +81,10 @@ async fn process_yellowstone_endpoint(
     transactions.insert(
         "account".to_string(),
         SubscribeRequestFilterTransactions {
-            vote: Some(false),
-            failed: Some(false),
-            signature: None,
             account_include: vec![config.account.clone()],
             account_exclude: vec![],
             account_required: vec![],
+            ..Default::default()
         },
     );
 
