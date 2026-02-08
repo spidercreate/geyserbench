@@ -129,7 +129,7 @@ pub fn display_run_summary(summary: &RunSummary) {
     if !summary.has_data {
         println!("Not enough data");
     } else {
-        let fastest_name_ref = summary.fastest_endpoint.as_deref();
+	let fastest_name_ref = summary.fastest_endpoint.as_deref();
         let mut summary_rows: Vec<&EndpointSummary> = summary.endpoints.iter().collect();
         summary_rows.sort_by(|a, b| compare_latency(a, b));
 
@@ -180,15 +180,13 @@ pub fn display_run_summary(summary: &RunSummary) {
         "Endpoint", "First %", "P50 ms", "P95 ms", "P99 ms", "Valid Tx", "Firsts", "Backfill",
     ]);
 
-    let fastest_name_ref = summary.fastest_endpoint.as_deref();
     for summary in table_rows {
-        let is_fastest = fastest_name_ref == Some(summary.name.as_str());
         table.add_row(vec![
             summary.name.clone(),
             format_percent(summary.first_share),
-            format_latency_value(summary.p50_delay_ms, is_fastest),
-            format_latency_value(summary.p95_delay_ms, is_fastest),
-            format_latency_value(summary.p99_delay_ms, is_fastest),
+            format_latency_value(summary.p50_delay_ms),
+            format_latency_value(summary.p95_delay_ms),
+            format_latency_value(summary.p99_delay_ms),
             summary.valid_transactions.to_string(),
             summary.first_detections.to_string(),
             summary.backfill_transactions.to_string(),
@@ -255,14 +253,10 @@ fn build_summary(
     summary
 }
 
-fn format_latency_value(value: Option<f64>, is_fastest: bool) -> String {
-    if is_fastest {
-        "-".to_string()
-    } else {
-        value
-            .map(|v| format!("{:.2}", v))
-            .unwrap_or_else(|| "—".to_string())
-    }
+fn format_latency_value(value: Option<f64>) -> String {
+    value
+        .map(|v| format!("{:.2}", v))
+        .unwrap_or_else(|| "—".to_string())
 }
 
 fn compare_latency(lhs: &EndpointSummary, rhs: &EndpointSummary) -> Ordering {
