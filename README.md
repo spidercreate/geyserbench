@@ -75,5 +75,3 @@ kind = "yellowstone"
 - `--config <PATH>` &mdash; load configuration from a different TOML file (defaults to `config.toml`).
 - `--private` &mdash; keep results local by skipping the streaming backend, even when the run qualifies for sharing.
 - `-h`, `--help` &mdash; show usage information.
-
-Streaming is enabled by default for standard-sized runs and publishes to `https://runs.solstack.app`. You can always opt out with `--private` or by configuring the backend section to point at your own infrastructure.
